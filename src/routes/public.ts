@@ -63,4 +63,20 @@ publicRoutes.get('/_admin/assets/*', async (c) => {
   return c.env.ASSETS.fetch(new Request(assetUrl.toString(), c.req.raw));
 });
 
+// POST /telegram/webhook - Telegram webhook (no auth required, proxied to moltbot gateway)
+publicRoutes.post('/telegram/webhook', async (c) => {
+  const sandbox = c.get('sandbox');
+  const request = c.req.raw;
+  
+  console.log('[TELEGRAM] Proxying webhook to moltbot gateway');
+  
+  try {
+    const response = await sandbox.containerFetch(request, 18789);
+    return response;
+  } catch (err) {
+    console.error('[TELEGRAM] Webhook proxy error:', err);
+    return c.json({ ok: false, error: 'Gateway not ready' }, 503);
+  }
+});
+
 export { publicRoutes };
