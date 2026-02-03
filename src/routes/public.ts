@@ -63,6 +63,36 @@ publicRoutes.get('/_admin/assets/*', async (c) => {
   return c.env.ASSETS.fetch(new Request(assetUrl.toString(), c.req.raw));
 });
 
+// POST /api/nuke - Kill ALL processes (debug endpoint - remove in production!)
+publicRoutes.post('/api/nuke', async (c) => {
+  const sandbox = c.get('sandbox');
+  
+  try {
+    const processes = await sandbox.listProcesses();
+    let killed = 0;
+    let errors = 0;
+    
+    for (const proc of processes) {
+      try {
+        await proc.kill();
+        killed++;
+      } catch {
+        errors++;
+      }
+    }
+    
+    return c.json({ 
+      ok: true, 
+      message: `Killed ${killed} processes, ${errors} errors`,
+      total: processes.length,
+      killed,
+      errors
+    });
+  } catch (err) {
+    return c.json({ ok: false, error: err instanceof Error ? err.message : 'Unknown error' }, 500);
+  }
+});
+
 // POST /telegram/webhook - Telegram webhook (no auth required, proxied to moltbot gateway)
 publicRoutes.post('/telegram/webhook', async (c) => {
   const sandbox = c.get('sandbox');
