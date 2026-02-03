@@ -187,8 +187,9 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
     config.channels.telegram = config.channels.telegram || {};
     config.channels.telegram.botToken = process.env.TELEGRAM_BOT_TOKEN;
     config.channels.telegram.enabled = true;
-    config.channels.telegram.dm = config.channels.telegram.dm || {};
-    config.channels.telegram.dmPolicy = process.env.TELEGRAM_DM_POLICY || 'pairing';
+    config.channels.telegram.dmPolicy = process.env.TELEGRAM_DM_POLICY || 'open';
+    // Remove any invalid 'dm' key that might exist from old configs
+    delete config.channels.telegram.dm;
 }
 
 // Discord configuration
@@ -277,6 +278,10 @@ EOFNODE
 # Note: R2 backup sync is handled by the Worker's cron trigger
 echo "Starting Moltbot Gateway..."
 echo "Gateway will be available on port 18789"
+
+# Fix any invalid config keys before starting
+echo "Running doctor --fix to clean up config..."
+clawdbot doctor --fix 2>/dev/null || true
 
 # Clean up stale lock files
 rm -f /tmp/clawdbot-gateway.lock 2>/dev/null || true

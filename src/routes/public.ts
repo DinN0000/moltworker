@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../types';
 import { MOLTBOT_PORT } from '../config';
-import { findExistingMoltbotProcess } from '../gateway';
+import { findExistingMoltbotProcess, ensureMoltbotGateway } from '../gateway';
 
 /**
  * Public routes - NO Cloudflare Access authentication required
@@ -68,10 +68,14 @@ publicRoutes.post('/telegram/webhook', async (c) => {
   const sandbox = c.get('sandbox');
   const request = c.req.raw;
   
-  console.log('[TELEGRAM] Proxying webhook to moltbot gateway');
+  console.log('[TELEGRAM] Received webhook, ensuring gateway is running...');
   
   try {
-    const response = await sandbox.containerFetch(request, 18789);
+    // Ensure the gateway is running before proxying
+    await ensureMoltbotGateway(sandbox, c.env);
+    console.log('[TELEGRAM] Gateway ready, proxying webhook');
+    
+    const response = await sandbox.containerFetch(request, MOLTBOT_PORT);
     return response;
   } catch (err) {
     console.error('[TELEGRAM] Webhook proxy error:', err);

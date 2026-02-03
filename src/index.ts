@@ -144,9 +144,27 @@ app.route('/cdp', cdp);
 // PROTECTED ROUTES: Cloudflare Access authentication required
 // =============================================================================
 
+// Public paths that bypass Cloudflare Access authentication
+const PUBLIC_PATHS = [
+  '/sandbox-health',
+  '/logo.png',
+  '/logo-small.png',
+  '/api/status',
+  '/telegram/webhook',
+];
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/_admin/assets/');
+}
+
 // Middleware: Validate required environment variables (skip in dev mode and for debug routes)
 app.use('*', async (c, next) => {
   const url = new URL(c.req.url);
+  
+  // Skip validation for public routes
+  if (isPublicPath(url.pathname)) {
+    return next();
+  }
   
   // Skip validation for debug routes (they have their own enable check)
   if (url.pathname.startsWith('/debug')) {
@@ -183,6 +201,13 @@ app.use('*', async (c, next) => {
 
 // Middleware: Cloudflare Access authentication for protected routes
 app.use('*', async (c, next) => {
+  const url = new URL(c.req.url);
+  
+  // Skip auth for public routes
+  if (isPublicPath(url.pathname)) {
+    return next();
+  }
+  
   // Determine response type based on Accept header
   const acceptsHtml = c.req.header('Accept')?.includes('text/html');
   const middleware = createAccessMiddleware({ 
